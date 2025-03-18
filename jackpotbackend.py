@@ -11,6 +11,9 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from fastapi.staticfiles import StaticFiles
+import uvicorn
+
+
 
 app.mount("/", StaticFiles(directory="static", html=True), name="static")
 # Configurar o banco de dados SQLite
@@ -143,3 +146,7 @@ def get_attempts(email: str, db: Session = Depends(get_db)):
 @app.get("/")
 async def read_root():
     return {"message": "Bem-vindo ao Jackpot do Bolão Animal!"}
+
+if __name__ == "__main__":
+    port = int(os.getenv("PORT", 8000))  # Usa a porta do ambiente ou 8000 como padrão
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)
