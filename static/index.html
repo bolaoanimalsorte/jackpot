@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jackpot do Bolão Animal</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #ffffff;
+            color: #1E3A8A;
+            padding: 50px;
+            transition: background-color 0.3s;
+        }
+        h1 {
+            font-size: 50px;
+            color: #2563EB;
+        }
+        #logo {
+            width: 150px;
+        }
+        #dateTime {
+            font-size: 14px;
+            color: #555;
+        }
+        .slot {
+            font-size: 40px;
+            display: inline-block;
+            width: 60px;
+            height: 60px;
+            border: 2px solid #000;
+            margin: 10px;
+            line-height: 60px;
+            background: #f1f1f1;
+            transition: all 0.2s ease-out;
+        }
+        #noAttempts, #winnerMessage {
+            display: none;
+            font-size: 1.2em;
+            margin-top: 20px;
+        }
+        #noAttempts {
+            color: red;
+        }
+        #winnerMessage {
+            color: green;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 1em;
+            background-color: #1e90ff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <img id="logo" src="BA.png" alt="Logo Bolão Animal">
+    <h1>Jackpot do Bolão Animal</h1>
+    <p id="dateTime"></p>  
+
+    <div id="emailContainer">
+        <p>Coloque aqui seu e-mail para jogar:</p>
+        <input type="email" id="emailInput" placeholder="Seu e-mail">
+        <button onclick="startGame()">Confirmar</button>
+    </div>
+
+    <div id="game" style="display:none;">
+        <p>Tentativas restantes: <span id="attempts">5</span></p>
+        <div id="slot-container">
+            <div class="slot" id="slot1">?</div>
+            <div class="slot" id="slot2">?</div>
+            <div class="slot" id="slot3">?</div>
+        </div>
+        <button id="playButton" onclick="playGame()" disabled>Jogar</button>
+        <p id="result"></p>
+    </div>
+
+    <div id="noAttempts">
+        <p>Você já usou todas as suas tentativas hoje!!! 😯</p>
+        <p>Volte amanhã para mais 5 chances!</p>
+    </div>
+
+    <div id="winnerMessage">
+        <p>🎉 Parabéns! Você ganhou o Jackpot do Bolão Animal! 🎉</p>
+        <p>Entraremos em contato pelo e-mail fornecido.</p>
+    </div>
+
+    <script>
+        const API_URL = "http://localhost:8000";
+
+        function updateDateTime() {
+            const now = new Date();
+            document.getElementById("dateTime").innerText = now.toLocaleString("pt-BR");
+        }
+        setInterval(updateDateTime, 1000);
+        updateDateTime();
+
+        window.onload = async function () {
+            const savedEmail = localStorage.getItem("playerEmail");
+            if (savedEmail) {
+                document.getElementById("emailInput").value = savedEmail;
+                await startGame(true);
+            }
+        };
+
+        async function startGame(isReload = false) {
+            const email = document.getElementById("emailInput").value.trim();
+            if (!email.includes("@")) {
+                if (!isReload) alert("Por favor, insira um e-mail válido.");
+                return;
+            }
+
+            const savedEmail = localStorage.getItem("playerEmail");
+            if (savedEmail && savedEmail !== email) {
+                alert("Você já está vinculado a um e-mail hoje. Use o mesmo ou volte amanhã!");
+                document.getElementById("emailInput").value = savedEmail;
+                return;
+            }
+
+            try {
+                const attemptsResponse = await fetch(`${API_URL}/attempts/${email}`);
+                const attemptsData = await attemptsResponse.json();
+
+                let attemptsLeft = attemptsData.message === "Usuário não encontrado" ? 5 : attemptsData.attemptsLeft;
+                document.getElementById("attempts").innerText = attemptsLeft;
+
+                if (attemptsLeft <= 0) {
+                    document.getElementById("emailContainer").style.display = "none";
+                    document.getElementById("game").style.display = "none";
+                    document.getElementById("noAttempts").style.display = "block";
+                    return;
+                }
+
+                document.getElementById("emailContainer").style.display = "none";
+                document.getElementById("game").style.display = "block";
+                document.getElementById("playButton").disabled = false; // Habilita o botão apenas após email válido
+
+                if (!savedEmail) localStorage.setItem("playerEmail", email);
+            } catch (error) {
+                console.error("Erro ao obter tentativas:", error);
+                if (!isReload) alert("Erro ao conectar ao servidor. Verifique se o backend está rodando.");
+            }
+        }
+
+        async function playGame() {
+            const email = document.getElementById("emailInput").value.trim();
+            if (!email) {
+                alert("Por favor, insira um e-mail antes de jogar!");
+                document.getElementById("emailContainer").style.display = "block";
+                document.getElementById("game").style.display = "none";
+                return;
+            }
+
+            const playButton = document.getElementById("playButton");
+            playButton.disabled = true;
+
+            try {
+                const response = await fetch(`${API_URL}/play`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ "email": email })
+                });
+
+                const data = await response.json();
+                console.log("Resposta do backend:", data);
+
+                if (!response.ok) {
+                    alert(`Erro: ${data.message || "Erro ao jogar."}`);
+                    playButton.disabled = false;
+                    return;
+                }
+
+                animateSlots(data.numbers, () => {
+                    document.getElementById("attempts").innerText = data.attemptsLeft;
+
+                    if (data.win) {
+                        document.getElementById("result").innerText = "🎉 Parabéns! Você ganhou! 🎉";
+                        document.getElementById("result").style.color = "green";
+                        blinkScreen();
+                        document.getElementById("game").style.display = "none";
+                        document.getElementById("winnerMessage").style.display = "block";
+                    } else if (data.attemptsLeft > 0) {
+                        document.getElementById("result").innerText = "Vamos lá, continue tentando!!! 🤞";
+                        document.getElementById("result").style.color = "orange";
+                        playButton.disabled = false;
+                    } else {
+                        document.getElementById("result").innerText = "Não foi dessa vez 😣";
+                        document.getElementById("result").style.color = "red";
+                        document.getElementById("game").style.display = "none";
+                        document.getElementById("noAttempts").style.display = "block";
+                    }
+                });
+            } catch (error) {
+                console.error("Erro ao jogar:", error);
+                alert("Erro ao conectar ao servidor.");
+                playButton.disabled = false;
+            }
+        }
+
+        function animateSlots(numbers, callback) {
+            const slots = [
+                document.getElementById("slot1"),
+                document.getElementById("slot2"),
+                document.getElementById("slot3")
+            ];
+            const spinDuration = 2000; // Duração total da animação em ms
+            const stopInterval = 500;  // Intervalo entre cada slot parando
+            const spinSpeed = 100;     // Velocidade de rotação dos números
+
+            // Iniciar a rotação de todos os slots
+            const intervals = slots.map(() => {
+                return setInterval(() => {
+                    slots.forEach(slot => {
+                        if (slot.innerText !== numbers[slots.indexOf(slot)]) {
+                            slot.innerText = Math.floor(Math.random() * 5) + 1;
+                        }
+                    });
+                }, spinSpeed);
+            });
+
+            // Parar os slots um de cada vez
+            slots.forEach((slot, index) => {
+                setTimeout(() => {
+                    clearInterval(intervals[index]);
+                    slot.innerText = numbers[index];
+                    if (index === slots.length - 1) {
+                        setTimeout(callback, 200); // Pequeno atraso antes do callback
+                    }
+                }, spinDuration + index * stopInterval);
+            });
+        }
+
+        function blinkScreen() {
+            let times = 0;
+            let interval = setInterval(() => {
+                document.body.style.backgroundColor = times % 2 === 0 ? "#FFD700" : "#FFFFFF";
+                times++;
+                if (times === 6) clearInterval(interval);
+            }, 500);
+        }
+    </script>
+</body>
+</html>
