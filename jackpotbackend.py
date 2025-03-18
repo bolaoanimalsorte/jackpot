@@ -13,9 +13,6 @@ from email.mime.multipart import MIMEMultipart
 from fastapi.staticfiles import StaticFiles
 import uvicorn
 
-
-
-app.mount("/", StaticFiles(directory="static", html=True), name="static")
 # Configurar o banco de dados SQLite
 DATABASE_URL = "sqlite:///jackpot.db"
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
@@ -39,6 +36,7 @@ Base.metadata.create_all(engine)
 
 # Inicializar FastAPI
 app = FastAPI()
+app.mount("/", StaticFiles(directory="static", html=True), name="static")
 
 # Configurar CORS
 app.add_middleware(
