@@ -96,7 +96,7 @@ def reset_attempts_if_new_day(player, db):
         db.commit()
 
 # Endpoint para iniciar o jogo
-@app.post("/play/", status_code=200)
+@app.post("/play")
 def play(request: PlayRequest, db: Session = Depends(get_db)):
     print(f"Recebendo tentativa de {request.email}")  # Log no servidor
     email = request.email
