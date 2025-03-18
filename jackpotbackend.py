@@ -10,7 +10,9 @@ import os
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from fastapi.staticfiles import StaticFiles
 
+app.mount("/", StaticFiles(directory="static", html=True), name="static")
 # Configurar o banco de dados SQLite
 DATABASE_URL = "sqlite:///jackpot.db"
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
