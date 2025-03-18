@@ -96,8 +96,9 @@ def reset_attempts_if_new_day(player, db):
         db.commit()
 
 # Endpoint para iniciar o jogo
-@app.post("/play/")
+@app.post("/play/", status_code=200)
 def play(request: PlayRequest, db: Session = Depends(get_db)):
+    print(f"Recebendo tentativa de {request.email}")  # Log no servidor
     email = request.email
     player = db.query(Player).filter_by(email=email).first()
 
@@ -105,8 +106,8 @@ def play(request: PlayRequest, db: Session = Depends(get_db)):
         player = Player(email=email, attempts=5, last_access=datetime.datetime.utcnow())
         db.add(player)
         db.commit()
-    else:
-        reset_attempts_if_new_day(player, db)
+    
+    reset_attempts_if_new_day(player, db)
 
     if player.attempts <= 0:
         return {"message": "Você já usou todas as suas tentativas hoje!", "attemptsLeft": 0}
@@ -116,20 +117,14 @@ def play(request: PlayRequest, db: Session = Depends(get_db)):
 
     player.attempts -= 1
     player.last_access = datetime.datetime.utcnow()
-
-    if win:
-        print(f"Jogador {email} venceu! Números: {numbers}")
-        send_email_winner(email)
-        player.attempts = 0  # Zerar tentativas após vitória
-        db.commit()
-        return {"message": "\U0001F389 Parabéns! Você ganhou!", "numbers": numbers, "win": True, "attemptsLeft": 0}
-
     db.commit()
 
-    if player.attempts > 0:
-        return {"message": "Continue tentando!", "numbers": numbers, "win": False, "attemptsLeft": player.attempts}
-    else:
-        return {"message": "Não foi dessa vez!", "numbers": numbers, "win": False, "attemptsLeft": 0}
+    return {
+        "message": "🎉 Parabéns! Você ganhou!" if win else "Continue tentando!",
+        "numbers": numbers,
+        "win": win,
+        "attemptsLeft": player.attempts,
+    }
 
 # Endpoint para verificar quantas tentativas restam
 @app.get("/attempts/{email}")
