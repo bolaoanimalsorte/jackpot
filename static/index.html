@@ -101,42 +101,29 @@
         const API_URL = "https://jackpot-k8n0.onrender.com";
 
         function updateDateTime() {
-            const now = new Date();
-            document.getElementById("dateTime").innerText = now.toLocaleString("pt-BR");
+            document.getElementById("dateTime").innerText = new Date().toLocaleString("pt-BR");
         }
         setInterval(updateDateTime, 1000);
         updateDateTime();
 
-        window.onload = async function () {
-            const savedEmail = localStorage.getItem("playerEmail");
-            if (savedEmail) {
-                document.getElementById("emailInput").value = savedEmail;
-                await startGame(true);
-            }
-        };
-
-        async function startGame(isReload = false) {
+        async function startGame() {
             const email = document.getElementById("emailInput").value.trim();
             if (!email.includes("@")) {
-                if (!isReload) alert("Por favor, insira um e-mail válido.");
-                return;
-            }
-
-            const savedEmail = localStorage.getItem("playerEmail");
-            if (savedEmail && savedEmail !== email) {
-                alert("Você já está vinculado a um e-mail hoje. Use o mesmo ou volte amanhã!");
-                document.getElementById("emailInput").value = savedEmail;
+                alert("Por favor, insira um e-mail válido.");
                 return;
             }
 
             try {
-                const attemptsResponse = await fetch(`${API_URL}/attempts/${email}`);
-                const attemptsData = await attemptsResponse.json();
+                const response = await fetch(`${API_URL}/attempts/${email}`);
+                const data = await response.json();
 
-                let attemptsLeft = attemptsData.message === "Usuário não encontrado" ? 5 : attemptsData.attemptsLeft;
-                document.getElementById("attempts").innerText = attemptsLeft;
+                if (data.message === "Usuário não encontrado") {
+                    document.getElementById("attempts").innerText = "5";
+                } else {
+                    document.getElementById("attempts").innerText = data.attemptsLeft;
+                }
 
-                if (attemptsLeft <= 0) {
+                if (data.attemptsLeft <= 0) {
                     document.getElementById("emailContainer").style.display = "none";
                     document.getElementById("game").style.display = "none";
                     document.getElementById("noAttempts").style.display = "block";
@@ -145,12 +132,10 @@
 
                 document.getElementById("emailContainer").style.display = "none";
                 document.getElementById("game").style.display = "block";
-                document.getElementById("playButton").disabled = false; // Habilita o botão apenas após email válido
-
-                if (!savedEmail) localStorage.setItem("playerEmail", email);
+                document.getElementById("playButton").disabled = false;
             } catch (error) {
-                console.error("Erro ao obter tentativas:", error);
-                if (!isReload) alert("Erro ao conectar ao servidor. Verifique se o backend está rodando.");
+                console.error("Erro ao conectar ao servidor:", error);
+                alert("Erro ao conectar ao servidor.");
             }
         }
 
@@ -158,27 +143,23 @@
             const email = document.getElementById("emailInput").value.trim();
             if (!email) {
                 alert("Por favor, insira um e-mail antes de jogar!");
-                document.getElementById("emailContainer").style.display = "block";
-                document.getElementById("game").style.display = "none";
                 return;
             }
 
-            const playButton = document.getElementById("playButton");
-            playButton.disabled = true;
+            document.getElementById("playButton").disabled = true;
 
             try {
                 const response = await fetch(`${API_URL}/play`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ "email": email })
+                    body: JSON.stringify({ email })
                 });
 
                 const data = await response.json();
-                console.log("Resposta do backend:", data);
 
                 if (!response.ok) {
-                    alert(`Erro: ${data.message || "Erro ao jogar."}`);
-                    playButton.disabled = false;
+                    alert(data.message || "Erro ao jogar.");
+                    document.getElementById("playButton").disabled = false;
                     return;
                 }
 
@@ -188,68 +169,43 @@
                     if (data.win) {
                         document.getElementById("result").innerText = "🎉 Parabéns! Você ganhou! 🎉";
                         document.getElementById("result").style.color = "green";
-                        blinkScreen();
                         document.getElementById("game").style.display = "none";
                         document.getElementById("winnerMessage").style.display = "block";
-                    } else if (data.attemptsLeft > 0) {
-                        document.getElementById("result").innerText = "Vamos lá, continue tentando!!! 🤞";
-                        document.getElementById("result").style.color = "orange";
-                        playButton.disabled = false;
                     } else {
-                        document.getElementById("result").innerText = "Não foi dessa vez 😣";
-                        document.getElementById("result").style.color = "red";
-                        document.getElementById("game").style.display = "none";
-                        document.getElementById("noAttempts").style.display = "block";
+                        document.getElementById("result").innerText = data.attemptsLeft > 0 ? "Tente novamente! 🤞" : "Suas tentativas acabaram 😣";
+                        document.getElementById("result").style.color = data.attemptsLeft > 0 ? "orange" : "red";
+                        if (data.attemptsLeft === 0) {
+                            document.getElementById("game").style.display = "none";
+                            document.getElementById("noAttempts").style.display = "block";
+                        } else {
+                            document.getElementById("playButton").disabled = false;
+                        }
                     }
                 });
             } catch (error) {
                 console.error("Erro ao jogar:", error);
                 alert("Erro ao conectar ao servidor.");
-                playButton.disabled = false;
+                document.getElementById("playButton").disabled = false;
             }
         }
 
         function animateSlots(numbers, callback) {
-            const slots = [
-                document.getElementById("slot1"),
-                document.getElementById("slot2"),
-                document.getElementById("slot3")
-            ];
-            const spinDuration = 2000; // Duração total da animação em ms
-            const stopInterval = 500;  // Intervalo entre cada slot parando
-            const spinSpeed = 100;     // Velocidade de rotação dos números
+            const slots = [document.getElementById("slot1"), document.getElementById("slot2"), document.getElementById("slot3")];
 
-            // Iniciar a rotação de todos os slots
-            const intervals = slots.map(() => {
-                return setInterval(() => {
-                    slots.forEach(slot => {
-                        if (slot.innerText !== numbers[slots.indexOf(slot)]) {
-                            slot.innerText = Math.floor(Math.random() * 5) + 1;
-                        }
-                    });
-                }, spinSpeed);
-            });
-
-            // Parar os slots um de cada vez
             slots.forEach((slot, index) => {
-                setTimeout(() => {
-                    clearInterval(intervals[index]);
-                    slot.innerText = numbers[index];
-                    if (index === slots.length - 1) {
-                        setTimeout(callback, 200); // Pequeno atraso antes do callback
+                let count = 0;
+                const interval = setInterval(() => {
+                    slot.innerText = Math.floor(Math.random() * 5) + 1;
+                    count++;
+                    if (count > 10) {
+                        clearInterval(interval);
+                        slot.innerText = numbers[index];
+                        if (index === 2) callback();
                     }
-                }, spinDuration + index * stopInterval);
+                }, 100);
             });
-        }
-
-        function blinkScreen() {
-            let times = 0;
-            let interval = setInterval(() => {
-                document.body.style.backgroundColor = times % 2 === 0 ? "#FFD700" : "#FFFFFF";
-                times++;
-                if (times === 6) clearInterval(interval);
-            }, 500);
         }
     </script>
 </body>
 </html>
+
