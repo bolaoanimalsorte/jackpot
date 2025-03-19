@@ -41,7 +41,7 @@ app.mount("/", StaticFiles(directory="static", html=True), name="static")
 # Configurar CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["https://jackpot-k8n0.onrender.com"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
