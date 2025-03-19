@@ -132,7 +132,10 @@ def play(request: PlayRequest, db: Session = Depends(get_db)):
 def get_attempts(email: str, db: Session = Depends(get_db)):
     player = db.query(Player).filter_by(email=email).first()
     if not player:
-        return {"message": "Usuário não encontrado", "attemptsLeft": 0}
+        player = Player(email=email, attempts=5, last_access=datetime.datetime.utcnow())
+        db.add(player)
+        db.commit()
+        db.refresh(player)
     reset_attempts_if_new_day(player, db)
     return {"email": email, "attemptsLeft": player.attempts}
 
