@@ -62,8 +62,8 @@ def get_db():
 
 # Função para enviar email ao administrador se o jogador ganhar usando SMTP
 def send_email_winner(email):
-    sender_email = os.getenv("GMAIL_EMAIL", "seuemail@gmail.com")
-    sender_password = os.getenv("GMAIL_APP_PASSWORD", "sua_senha")
+    sender_email = os.getenv("GMAIL_EMAIL", "bolaoanimal@gmail.com")
+    sender_password = os.getenv("GMAIL_APP_PASSWORD", "peuc kvmf qdum dgmh")
     receiver_email = "bolaoanimal@gmail.com"
 
     subject = "\U0001F389 Jackpot Ganhador!"
