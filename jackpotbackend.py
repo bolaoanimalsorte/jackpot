@@ -41,7 +41,7 @@ app.mount("/", StaticFiles(directory="static", html=True), name="static")
 # Configurar CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://jackpot-k8n0.onrender.com"],
+    allow_origins=["https://jackpot-k8n0.onrender.com"],  # Altere para ["https://jackpot-k8n0.onrender.com"] para mais segurança
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -60,10 +60,9 @@ def get_db():
         db.close()
 
 # Função para enviar email ao administrador se o jogador ganhar usando SMTP
-
 def send_email_winner(email):
-    sender_email = os.environ.get("GMAIL_EMAIL", "bolaoanimal@gmail.com")  # Pega do ambiente
-    sender_password = os.environ.get("GMAIL_APP_PASSWORD", "peuc kvmf qdum dgmh")  # Pega do ambiente
+    sender_email = os.getenv("GMAIL_EMAIL", "seu_email@gmail.com")
+    sender_password = os.getenv("GMAIL_APP_PASSWORD", "senha_do_app")
     receiver_email = "bolaoanimal@gmail.com"
 
     subject = "\U0001F389 Jackpot Ganhador!"
@@ -81,8 +80,6 @@ def send_email_winner(email):
             server.login(sender_email, sender_password)
             server.sendmail(sender_email, receiver_email, msg.as_string())
         print("Email enviado com sucesso!")
-    except smtplib.SMTPAuthenticationError:
-        print("Erro de autenticação! Verifique seu e-mail e senha de aplicativo.")
     except Exception as e:
         print(f"Erro ao enviar e-mail: {e}")
 
@@ -97,8 +94,7 @@ def reset_attempts_if_new_day(player, db):
 
 # Endpoint para iniciar o jogo
 @app.post("/play")
-def play(request: PlayRequest, db: Session = Depends(get_db)):
-    print(f"Recebendo tentativa de {request.email}")  # Log no servidor
+async def play(request: PlayRequest, db: Session = Depends(get_db)):
     email = request.email
     player = db.query(Player).filter_by(email=email).first()
 
@@ -119,8 +115,11 @@ def play(request: PlayRequest, db: Session = Depends(get_db)):
     player.last_access = datetime.datetime.utcnow()
     db.commit()
 
+    if win:
+        send_email_winner(email)
+
     return {
-        "message": "🎉 Parabéns! Você ganhou!" if win else "Continue tentando!",
+        "message": "\U0001F389 Parabéns! Você ganhou!" if win else "Continue tentando!",
         "numbers": numbers,
         "win": win,
         "attemptsLeft": player.attempts,
@@ -128,7 +127,7 @@ def play(request: PlayRequest, db: Session = Depends(get_db)):
 
 # Endpoint para verificar quantas tentativas restam
 @app.get("/attempts/{email}")
-def get_attempts(email: str, db: Session = Depends(get_db)):
+async def get_attempts(email: str, db: Session = Depends(get_db)):
     player = db.query(Player).filter_by(email=email).first()
     if not player:
         return {"message": "Usuário não encontrado"}
@@ -141,5 +140,6 @@ async def read_root():
     return {"message": "Bem-vindo ao Jackpot do Bolão Animal!"}
 
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", 8000))  # Usa a porta do ambiente ou 8000 como padrão
-    uvicorn.run("jackpotbackend:app", host="0.0.0.0", port=port, reload=False)
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run("fastapi_jackpot:app", host="0.0.0.0", port=port, reload=False)
+
