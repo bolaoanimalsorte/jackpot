@@ -23,6 +23,14 @@
         #logo {
             width: 150px;
         }
+        #mensagem-explicativa {
+            max-width: 500px;
+            margin: 10px auto;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+        }
         #dateTime {
             font-size: 14px;
             color: #555;
@@ -67,6 +75,10 @@
 </head>
 <body>
     <img id="logo" src="https://jackpot-k8n0.onrender.com/static/BA.png" alt="Logo Bolão Animal">
+    <!-- Mensagem explicativa adicionada aqui -->
+    <div id="mensagem-explicativa">
+        Bem-vindo ao jackpot do Bolão Animal. Quando clicar em jogar, vão ser sorteados 3 números aleatórios entre 1 e 5. Se os 3 números forem iguais, você vence o jackpot e vai ganhar um bolão. Boa sorte!
+    </div>
     <h1>Jackpot do Bolão Animal</h1>
     <p id="dateTime"></p>  
 
@@ -145,6 +157,9 @@
                 alert("Por favor, insira um e-mail antes de jogar!");
                 return;
             }
+
+            // Esconder a mensagem explicativa ao clicar em "Jogar"
+            document.getElementById("mensagem-explicativa").style.display = "none";
 
             document.getElementById("playButton").disabled = true;
 
