@@ -75,11 +75,10 @@
 </head>
 <body>
     <img id="logo" src="https://jackpot-k8n0.onrender.com/static/BA.png" alt="Logo Bolão Animal">
-    <!-- Mensagem explicativa adicionada aqui -->
     <div id="mensagem-explicativa">
-        Bem-vindo ao jackpot do Bolão Animal 🐶😺. Quando clicar em jogar, vão ser sorteados 3 números aleatórios entre 1 e 5. Se os 3 números forem iguais, você vence o jackpot e vai ganhar um bolão. Coloque seu e-mail, confirme e jogue. Boa sorte! 🍀
+        Bem-vindo ao jackpot do Bolão Animal. Quando clicar em jogar, vão ser sorteados 3 números aleatórios entre 1 e 5. Se os 3 números forem iguais, você vence o jackpot e vai ganhar um bolão. Boa sorte!
     </div>
-    <h1>Jackpot do Bolão Animal 🍀</h1>
+    <h1>Jackpot do Bolão Animal</h1>
     <p id="dateTime"></p>  
 
     <div id="emailContainer">
@@ -158,9 +157,7 @@
                 return;
             }
 
-            // Esconder a mensagem explicativa ao clicar em "Jogar"
             document.getElementById("mensagem-explicativa").style.display = "none";
-
             document.getElementById("playButton").disabled = true;
 
             try {
@@ -182,10 +179,12 @@
                     document.getElementById("attempts").innerText = data.attemptsLeft;
 
                     if (data.win) {
+                        flashScreen(); // Adicionar efeito de piscar
                         document.getElementById("result").innerText = "🎉 Parabéns! Você ganhou! 🎉";
                         document.getElementById("result").style.color = "green";
                         document.getElementById("game").style.display = "none";
                         document.getElementById("winnerMessage").style.display = "block";
+                        document.getElementById("playButton").disabled = true; // Garantir que o botão fique bloqueado
                     } else {
                         document.getElementById("result").innerText = data.attemptsLeft > 0 ? "Tente novamente! 🤞" : "Suas tentativas acabaram 😣";
                         document.getElementById("result").style.color = data.attemptsLeft > 0 ? "orange" : "red";
@@ -220,7 +219,19 @@
                 }, 100);
             });
         }
+
+        function flashScreen() {
+            let flashes = 0;
+            const body = document.body;
+            const interval = setInterval(() => {
+                body.style.backgroundColor = flashes % 2 === 0 ? "#FFD700" : "#ffffff"; // Alterna entre amarelo e branco
+                flashes++;
+                if (flashes >= 6) {
+                    clearInterval(interval);
+                    body.style.backgroundColor = "#ffffff"; // Volta ao normal
+                }
+            }, 200); // Piscar a cada 200ms
+        }
     </script>
 </body>
 </html>
-
