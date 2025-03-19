@@ -11,6 +11,7 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse  # Add this import
 import uvicorn
 
 # Configurar o banco de dados SQLite
@@ -41,7 +42,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 # Configurar CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Alterado para permitir requisições de qualquer origem
+    allow_origins=["https://jackpot-k8n0.onrender.com"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -139,10 +140,10 @@ def get_attempts(email: str, db: Session = Depends(get_db)):
     reset_attempts_if_new_day(player, db)
     return {"email": email, "attemptsLeft": player.attempts}
 
-# Rota raiz
+# Rota raiz - Serve index.html instead of JSON
 @app.get("/")
 def read_root():
-    return {"message": "Bem-vindo ao Jackpot do Bolão Animal!"}
+    return FileResponse("static/index.html")
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))
