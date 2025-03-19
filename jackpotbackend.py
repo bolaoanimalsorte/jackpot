@@ -11,7 +11,7 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse  # Add this import
+from fastapi.responses import FileResponse
 import uvicorn
 
 # Configurar o banco de dados SQLite
@@ -115,6 +115,8 @@ def play(request: PlayRequest, db: Session = Depends(get_db)):
     win = numbers[0] == numbers[1] == numbers[2]
 
     player.attempts -= 1
+    if win:
+        player.attempts = 0  # Zeramos as tentativas ao vencer
     player.last_access = datetime.datetime.utcnow()
     db.commit()
 
